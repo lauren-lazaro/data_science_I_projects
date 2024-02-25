@@ -1,0 +1,278 @@
+---
+title: "p8105_mtp_lel2176"
+output: github_document
+date: "2023-10-19"
+---
+
+```{r, echo=FALSE}
+devtools::install_github("benmarwick/wordcountaddin",  type = "source", dependencies = TRUE)
+```
+
+```{r, echo=FALSE}
+library(tidyverse)
+```
+
+# Introduction
+
+the raw data sets represents the change of addresses (COA) in NYC and boroughs with corresponding ZIP codes. the goal is to use both data sets to analyze the distribution and frequency of COAs in NYC from 2018-2022.
+
+## Cleaning NYC Zip Code Data
+
+```{r}
+zipcodes = read_csv("data/Zip Codes.csv")
+zipcode_data = 
+zipcodes |> 
+  rename(borough = `County Name`) |> 
+  rename(state_fips = `State FIPS`) |> 
+  rename(county_code = `County Code`) |> 
+  rename(county_fips = `County FIPS`) |> 
+  rename(zipcode = `ZipCode`) |> 
+  rename(file_date = `File Date`) |> 
+  rename(neighborhood = `Neighborhood`) |> 
+  mutate(
+     borough = case_match(
+      borough, 
+      "Bronx" ~ "Bronx",
+      "Kings" ~ "Brooklyn",
+      "New York" ~ "Manhattan", 
+      "Richmond" ~ "Staten Island",
+      "Queens" ~ "Queens")
+  ) |> 
+  select(borough, zipcode, file_date, neighborhood)
+```
+
+`zipcode_data` is a supplementary data set that provides ZIP codes for `neighborhood` and `borough` in NYC. the data was cleaned to only output relevent variables. the original variable names were changed for clarity, and `borough` data values were mutated to accurately represent the 5 NYC boroughs.
+
+
+## Cleaning COA Data
+```{r}
+coa_2018 = 
+  coa = readxl::read_excel("data/USPS CHANGE OF ADDRESS NYC.xlsx", "2018") |>
+    rename(date = MONTH) |> 
+    rename(zipcode = ZIPCODE) |> 
+    rename(city = `CITY`) |> 
+    rename(outbound = `TOTAL PERM OUT`) |> 
+    rename(inbound = `TOTAL PERM IN`) |> 
+    mutate(
+      `year` = year(date), 
+      `net_change` = (inbound - outbound)
+    )
+
+coa_2019 = 
+  coa = readxl::read_excel("data/USPS CHANGE OF ADDRESS NYC.xlsx", "2019") |>
+    rename(date = MONTH) |> 
+    rename(zipcode = ZIPCODE) |> 
+    rename(city = `CITY`) |> 
+    rename(outbound = `TOTAL PERM OUT`) |> 
+    rename(inbound = `TOTAL PERM IN`) |> 
+    mutate(
+      `year` = year(date), 
+      `net_change` = (inbound - outbound)
+    )
+
+coa_2020 = 
+  coa = readxl::read_excel("data/USPS CHANGE OF ADDRESS NYC.xlsx", "2020") |>
+    rename(date = MONTH) |> 
+    rename(zipcode = ZIPCODE) |> 
+    rename(city = `CITY`) |> 
+    rename(outbound = `TOTAL PERM OUT`) |> 
+    rename(inbound = `TOTAL PERM IN`) |> 
+    mutate(
+      `year` = year(date), 
+      `net_change` = (inbound - outbound)
+    )
+
+coa_2021 = 
+  coa = readxl::read_excel("data/USPS CHANGE OF ADDRESS NYC.xlsx", "2021") |>
+    rename(date = MONTH) |> 
+    rename(zipcode = ZIPCODE) |> 
+    rename(city = `CITY`) |> 
+    rename(outbound = `TOTAL PERM OUT`) |> 
+    rename(inbound = `TOTAL PERM IN`) |> 
+    mutate(
+      `year` = year(date), 
+      `net_change` = (inbound - outbound)
+    )
+
+coa_2022 = 
+  coa = readxl::read_excel("data/USPS CHANGE OF ADDRESS NYC.xlsx", "2022") |>
+    rename(date = MONTH) |> 
+    rename(zipcode = ZIPCODE) |> 
+    rename(city = `CITY`) |> 
+    rename(outbound = `TOTAL PERM OUT`) |> 
+    rename(inbound = `TOTAL PERM IN`) |> 
+    mutate(
+      `year` = year(date), 
+      `net_change` = (inbound - outbound)
+    )
+
+coa_data = 
+  bind_rows(coa_2018, coa_2019, coa_2020, coa_2021, coa_2022)
+```
+
+`coa_data` includes the USPS data of total number of COAs to and from each ZIP code in NYC for each calendar month from 2018-2022. the data was cleaned in order to show `date` and `year`, `zipcode`, `outbound` and `inbound`, and the `net_change`. the original variable names were changed for clarity.
+
+## Combining Datasets
+
+```{r}
+zipcode_coa = merge(zipcode_data, coa_data, by.zipcode_data = zipcode, by.coa_data = zipcode) |> 
+  mutate(
+    month = month(date)
+  ) |> 
+  select(zipcode, month, date, borough, city, neighborhood, year, net_change)  |> 
+  mutate(
+    month = case_match(
+      month, 
+      1 ~ "January",
+      2 ~ "Febuary",
+      3 ~ "March", 
+      4 ~ "April",
+      5 ~ "May", 
+      6 ~ "June", 
+      7 ~ "July", 
+      8 ~ "August", 
+      9 ~ "September",
+      10 ~ "October", 
+      11 ~ "November", 
+      12 ~ "December") 
+  )
+```
+
+`zipcode_coa` combines both `zipcode_data` and `coa_data` to represent the `net_change` in COA of the various `neighborhood`, `borough`, `city`, according to the `zipcode` in NYC from 2018-2022. `month` values were mutated from numerical values to categorical months. there are `r nrow(zipcode_coa)` observations, `r length(unique(zipcode_coa$zipcode))` unique ZIP codes, and `r length(unique(zipcode_coa$neighborhood))` unique neighborhoods.
+
+
+## Analyzing Cities in Manhattan and Queens 
+
+```{r, echo = FALSE}
+cities_manhattan = 
+  zipcode_coa |> 
+  drop_na() |> 
+  group_by(city) |> 
+  filter(borough == "Manhattan") |> 
+  summarize(count = length(city))
+
+cities_queens = 
+  zipcode_coa |> 
+  drop_na() |> 
+  group_by(city) |> 
+  filter(borough == "Queens") |> 
+  summarize(count = length(city))
+
+```
+
+```{r}
+knitr::kable(cities_manhattan)
+knitr::kable(cities_queens)
+```
+
+`cities_manhattan` and `cities_queens` shows the unique cities in each NYC borough and their frequency in `zipcode_coa`. manhattan has significantly less unique cities than queens with `r nrow(cities_manhattan)` and `r nrow(cities_queens)` cities respectively. 
+
+missing `zipcode` data may be a result of confusion in information reporting. people may have been confused with the meaning of `city` versus `neighborhood` and left the `neighborhood` value blank. 
+
+## Table of Net Means of Each Borough Per Year
+
+```{r, echo=FALSE}
+net_mean_2018 = 
+  zipcode_coa |> 
+  filter(year == 2018) |> 
+  group_by(borough) |> 
+  summarize(net_mean = mean(net_change)) |> 
+  mutate(
+    year = 2018
+  )
+
+net_mean_2019 = 
+  zipcode_coa |> 
+  filter(year == 2019) |> 
+  group_by(borough) |> 
+  summarize(net_mean = mean(net_change)) |> 
+  mutate(
+    year = 2019
+  )
+
+net_mean_2020 = 
+  zipcode_coa |> 
+  filter(year == 2020) |> 
+  group_by(borough) |> 
+  summarize(net_mean = mean(net_change)) |> 
+  mutate(
+    year = 2020
+  )
+
+net_mean_2021 = 
+  zipcode_coa |> 
+  filter(year == 2021) |> 
+  group_by(borough) |> 
+  summarize(net_mean = mean(net_change)) |> 
+  mutate(
+    year = 2021
+  )
+
+net_mean_2022 = 
+  zipcode_coa |> 
+  filter(year == 2022) |> 
+  group_by(borough) |> 
+  summarize(net_mean = mean(net_change)) |> 
+  mutate(
+    year = 2022
+  )
+
+net_mean = 
+  bind_rows(net_mean_2018, net_mean_2019, net_mean_2020, net_mean_2021, net_mean_2022)
+
+net_mean_table = 
+  net_mean |> 
+  pivot_wider(names_from = borough, values_from = net_mean)
+
+```
+
+```{r}
+knitr::kable(net_mean_table)
+```
+
+`net_mean_table` is a table that represents the net mean COA of each `borough` for each year from 2018-2022. this table was achieved by filtering `zipcode_coa` by each `year`, grouping by each `borough`, and then calculating mean by `mean(net_change)`. mean net change values were compiled for each year and bound into a singular table that was then pivoted in order to concisely represent the data in a readible manner.
+
+## Table with the 5 Lowest net_change Values 
+
+```{r}
+lowest_five = 
+  zipcode_coa |> 
+  arrange(net_change)
+
+lowest_five_table = 
+  lowest_five[1:5,] |> 
+  select(zipcode, neighborhood, month, year, net_change)
+
+knitr::kable(lowest_five_table)
+
+```
+
+the `zipcode_coa` table was manipulated in order to obtain the lowest 5 values of `net_change` which are output in `lowest_five_table`. in this table we can see the `zipcode`, `neighborhood`, `month`, `year`, and `net_change` values for the neighborhoods with the 5 lowest net changes in COA from 2018-2022. 
+
+## Average Net Change in Adresses Throughout NYC Boroughs Plot
+
+```{r, echo=FALSE}
+plot_df =
+  zipcode_coa |> 
+  group_by(date, borough, neighborhood, month) |> 
+  summarize(mean_net_change = mean(net_change, na.rm = TRUE))
+
+
+average_net_change_plot = ggplot(plot_df, aes(x = date, y = mean_net_change, color = borough)) + 
+  geom_point(alpha = .5) +
+  geom_smooth(se = FALSE) +
+  facet_wrap(~borough, ncol=2) +
+  labs(
+    title = "Average Net Change in Addresses Throughout NYC Boroughs 2018-2022",
+    x = "Date",
+    y = "Average Net Change"
+  )
+```
+
+```{r}
+average_net_change_plot
+```
+
+this plot represents the average net COA throughout all five boroughs in NYC from 2018-2022. the data is represented by the averages values of each month throughout the four year time span. although most apparent in `manhattan`, each borough shows a decrease in COA during 2020, most likely due to the pandemic. the trend is most exaggerated for `manhattan` as a result of a large sample size and the least exaggerated in `staten island` as a result of a much smaller sample size.
+
+

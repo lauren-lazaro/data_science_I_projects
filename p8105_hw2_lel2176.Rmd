@@ -1,0 +1,164 @@
+
+---
+title: "p8105_hw2_lel2176"
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+## Problem 2
+
+Read and clean the Mr. Trash Wheel sheet:
+specify the sheet in the Excel file and to omit non-data entries (rows with notes / figures; columns containing notes) using arguments in read_excel
+use reasonable variable names
+omit rows that do not include dumpster-specific data
+The data include a column for the (approximate) number of homes powered. This calculation is described in the Homes powered note, but not applied to every row in the dataset. Update the data to include a new homes_powered variable based on this calculation.
+
+Use a similar process to import, clean, and organize the data for Professor Trash Wheel and Gwynnda, and combine these with the Mr. Trash Wheel dataset to produce a single tidy dataset. To keep track of which Trash Wheel is which, you may need to add an additional variable to all datasets before combining.
+
+Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in the resulting dataset, and give examples of key variables. For available data, what was the total weight of trash collected by Professor Trash Wheel? What was the total number of cigarette butts collected by Gwynnda in July of 2021?
+
+```{r}
+mr_trash_wheel = 
+  readxl::read_excel("data/new_trash_data.xlsx", "Mr. Trash Wheel") |> 
+  janitor::clean_names() |> 
+  drop_na(dumpster) |> 
+  rename(weight = weight_tons) |> 
+  rename(volume = volume_cubic_yards) |> 
+  select(dumpster, date, weight, volume, plastic_bottles, polystyrene, cigarette_butts, glass_bottles, plastic_bags, wrappers, sports_balls, homes_powered) |> 
+  mutate(
+    homes_powered = (weight*500) / 30 , 
+    trash_wheel = "mr. trash"
+  )
+mr_trash_wheel
+```
+
+`mr_trash_wheel` is a dataset with `r nrow(mr_trash_wheel)` dumpsters and `r ncol(mr_trash_wheel)` variables. the variables provide information on all of the observed dumpsters which are labeled by their dumpster number `dumpster` and the date `date`.  each dumpster has recorded measures of their `weight` (measure in tons), `volume` (measured by cubic yards), specific numbers of each type of trash they contain, and the number of homes they have powered calculated by `homes_powered = (weight*500) / 30` since each ton of trash equates 500 kilowatts of energy and an average household uses 30 kilowatts per day. the last row of `mr_trash_wheel` was deleted because it was missing values for `dumpster` and `date`. the variable names were renamed in order to be easier to read and comprehend. the original variable columns `month` and `year` were removed since the date is already provided. the original variable column `homes_powered` was mutated in order to correctly calculate the number of homes powered by mr. trash wheel. lastly, a variable column `trash_wheel` was added in order to specify that these observed dumpsters belong to mr. trash wheel. 
+
+
+```{r}
+prof_trash_wheel = 
+  readxl::read_excel("data/new_trash_data.xlsx", "Professor Trash Wheel") |> 
+  janitor::clean_names() |> 
+  drop_na(dumpster, plastic_bottles) |> 
+  rename(weight = weight_tons) |> 
+  rename(volume = volume_cubic_yards) |> 
+  select(dumpster, date, weight, volume, plastic_bottles, polystyrene, cigarette_butts, glass_bottles, plastic_bags, wrappers, homes_powered) |> 
+  mutate(
+    homes_powered = (weight*500) / 30 ,
+    trash_wheel = "Prof. Trash"
+  )
+prof_trash_wheel
+```
+
+`prof_trash_wheel` is a dataset with `r nrow(prof_trash_wheel)` dumpsters and `r ncol(prof_trash_wheel)` variables. the variables provide information on all of the observed dumpsters which are labeled by their dumpster number `dumpster` and the date `date`.  each dumpster has recorded measures of their `weight` (measure in tons), `volume` (measured by cubic yards), specific numbers of each type of trash they contain, and the number of homes they have powered calculated by `homes_powered = (weight*500) / 30` since each ton of trash equates 500 kilowatts of energy and an average household uses 30 kilowatts per day. `dumpter` `103` was removed because it contained multiple `na` values. the last row of `prof_trash_wheel` was deleted because it was missing values for `dumpster` and `date`. the variable names were renamed in order to be easier to read and comprehend. the original variable columns `month` and `year` were removed since the date is already provided. the original variable column `homes_powered` was mutated in order to correctly calculate the number of homes powered by prof. trash wheel. lastly, a variable column `trash_wheel` was added in order to specify that these observed dumpsters belong to prof. trash wheel. the total amount of trash that prof. trash wheel collected is `r sum(prof_trash_wheel$plastic_bottles) + sum(prof_trash_wheel$polystyrene) + sum(prof_trash_wheel$cigarette_butts) + sum(prof_trash_wheel$glass_bottles) + sum(prof_trash_wheel$grocery_bags) + sum(prof_trash_wheel$chip_bags)`.
+
+
+```{r}
+gwyn_trash_wheel = 
+  readxl::read_excel("data/new_trash_data.xlsx", "Gwynnda Trash Wheel") |> 
+  janitor::clean_names() |> 
+  drop_na(dumpster) |> 
+  rename(weight = weight_tons) |> 
+  rename(volume = volume_cubic_yards) |> 
+  select(dumpster, date, weight, volume, plastic_bottles, polystyrene, cigarette_butts, plastic_bags, homes_powered) |> 
+  mutate(
+  homes_powered = (weight*500) / 30 ,
+  trash_wheel = "gwynnda trash"
+)
+
+gwyn_trash_wheel
+```
+
+`gwyn_trash_wheel` is a dataset with `r nrow(gwyn_trash_wheel)` dumpsters and `r ncol(gwyn_trash_wheel)` variables. the variables provide information on all of the observed dumpsters which are labeled by their dumpster number `dumpster` and the date `date`.  each dumpster has recorded measures of their `weight` (measure in tons), `volume` (measured by cubic yards), specific numbers of each type of trash they contain, and the number of homes they have powered calculated by `homes_powered = (weight*500) / 30` since each ton of trash equates 500 kilowatts of energy and an average household uses 30 kilowatts per day. the second to last row of `gwyn_trash_wheel` was deleted because it only contained `na` values. the last row of `gwyn_trash_wheel` was deleted because it was missing its dumpster number and date. a lot of dumpsters in `gwyn_trash_wheel` were missing values for `wrappers`. although some of the rows did contain values for `wrappers` I made the decision to delete this column for the sake of readability and so that all of the `dumpsters` in `gwyn_trash_wheel` can be fairly compared. the variable names were renamed in order to be easier to read and comprehend. the original variable columns `month` and `year` were removed since the date is already provided. the original variable column `homes_powered` was mutated in order to correctly calculate the number of homes powered by gwynda trash wheel. lastly, a variable column `trash_wheel` was added in order to specify that these observed dumpsters belong to gwynda trash wheel. there are a few rows to highlight in `gwyn_trash_wheel`: dumpster numbers `45`, `46`, `85`, `95`, `96`, and `102` contain all `0` values for pieces of trash which could indicate periods of zero rainfall which is directly related to the amount of pollutants. the total number of cigarette butts that gwynda trash wheel collected in July 2021 is `r sum((gwyn_trash_wheel[gwyn_trash_wheel$date >= "2021-07-01" & gwyn_trash_wheel$date <= "2021-07-31", ])$cigarette_butts)`.
+
+```{r}
+trash_data = 
+  bind_rows(mr_trash_wheel, prof_trash_wheel, gwyn_trash_wheel) |> 
+  select(dumpster, date, weight, volume, plastic_bottles, polystyrene, cigarette_butts, plastic_bags, homes_powered, trash_wheel)
+trash_data
+```
+
+`mr_trash_wheel`, `prof_trash_wheel`, and `gwyn_trash_wheel` were combined in order to compare their data. It is important that the variable column `trash_wheel` was created in order to differentiate which dumpster belonged to which wheel. the variables `dumpster`, `date`, `weight`, `volume`, and `homes_powered` were included because they give important descriptions of each dumpster. the only trash-type variables that were kept in the combined dataset were `plastic_bottles`, `polystyrene`, `cigarette_butts`, and `palstic_bags`, because they were the only pollutants that were recorded for all three dumpsters. for example, `sports_balls	` was only found in `mr_trash_wheel`, so the entire column was removed from the combined dataset because there was no other data to compare it to for the other two dumpsters. 
+
+
+# Problem 3
+
+This problem uses data collected in an observational study to understand the trajectory of Alzheimer’s disease (AD) biomarkers. Study participants were free of Mild Cognitive Impairment (MCI), a stage between the expected cognitive decline of normal aging and the more serious decline of dementia, at the study baseline.
+
+Basic demographic information were measured at the study baseline. The study monitored the development of MCI and recorded the age of MCI onset during the follow-up period, with the last visit marking the end of follow-up. APOE4 is a variant of the apolipoprotein E gene, significantly associated with a higher risk of developing Alzheimer’s disease. The amyloid β
+ 42/40 ratio holds significant promise for diagnosing and predicting disease outcomes. This ratio undergoes changes over time and has been linked to the manifestation of clinical symptoms of Alzheimer’s disease.
+
+Import, clean, and tidy the dataset of baseline demographics. Ensure that sex and APOE4 carrier status are appropriate encoded (i.e. not numeric), and remove any participants who do not meet the stated inclusion criteria (i.e. no MCI at baseline). Discuss important steps in the import process and relevant features of the dataset. How many participants were recruited, and of these how many develop MCI? What is the average baseline age? What proportion of women in the study are APOE4 carriers?
+
+Similarly, import, clean, and tidy the dataset of longitudinally observed biomarker values; comment on the steps on the import process and the features of the dataset.
+
+Check whether some participants appear in only the baseline or amyloid datasets, and comment on your findings. Combine the demographic and biomarker datasets so that only participants who appear in both datasets are retained, and briefly describe the resulting dataset; export the result as a CSV to your data directory.
+
+```{r}
+
+mci_baseline_data = read_csv("data/data_mci/MCI_baseline.csv")[-1,] |> 
+  janitor::clean_names() |> 
+  rename(ID = x1) |> 
+  rename(current_age = age_at_the_study_baseline) |> 
+  rename(sex = x1_male_0_female) |> 
+  rename(education = years_of_education) |> 
+  rename(apoe4 = x1_apoe4_carrier_0_apoe4_non_carrier) |> 
+  rename(age_at_onset = age_at_the_onset_of_mci_missing_if_a_subject_remains_mci_free_during_the_follow_up_period) |> 
+    mutate(
+    sex = case_match(
+      sex, 
+      "0" ~ "male",
+      "1" ~ "female"
+    )
+  ) |> 
+    mutate(
+    apoe4 = case_match(
+      apoe4, 
+      "1" ~ "carrier",
+      "0" ~ "non-carrier"
+    )
+  ) |> 
+    mutate(
+      age_at_onset = as.numeric(as.character(age_at_onset))
+    )
+
+baseline_data = drop_na(mci_baseline_data)
+
+
+
+amy_data = read_csv("data/data_mci/mci_amyloid.csv")[-1,] |> 
+  janitor::clean_names() |> 
+  rename(ID = study_id) |> 
+  rename(baseline = time_in_years_elapsed_since_the_study_baseline_to_the_visit_where_biomarker_amyloid_42_40_ratio_was_measured) |> 
+  rename(time_2 = na_3) |> 
+  rename(time_4 = na_4) |> 
+  rename(time_6 = na_5) |> 
+  rename(time_8 = na_6) |> 
+  drop_na(baseline, time_2, time_4, time_6, time_8)
+  
+  
+
+time_2_clean = amy_data[!(amy_data$time_2=="Na"),]
+time_4_clean = time_2_clean[!(time_2_clean$time_4=="Na"),]
+time_6_clean = time_4_clean[!(time_4_clean$time_6=="Na"),]
+time_8_clean = time_6_clean[!(time_6_clean$time_8=="Na"),]
+amyloid_data = time_8_clean[!(time_8_clean$baseline=="Na"),]
+ 
+
+baseline_data
+amyloid_data
+
+merge_data = merge(baseline_data, amyloid_data, by.baseline_data = ID, by.amyloid_data = ID)
+merge_data
+
+write.csv(merge_data, "data/data_mci/merge_data.csv", row.names=FALSE)
+```
+
+`baseline_data` is a dataset with `r nrow(baseline_data)` patients and `r ncol(baseline_data)` variables. the variables include important demographics about each patient but most importantly specify in `apoe4` whether they are a carrier of the gene variant or not. many of the original variables were renamed to be more descriptive and easier to read and comprehend such as `x1` being renamed to `ID` in order to represent the patient ID. other original variable names were too long and were shortened such as `age_at_onset_of_mci_missing_if_a_subject_remains_mci_free_during_the_follow_up_period` being renamed to `age_at_onset`. the values in the `sex` column were mutated in order to be easier to understand their meaning. originally, all of the values were either `0` or `1`. the values were mutated with the conditions `0 ~ male` and `1 ~ female` so that the values in the final dataset appear as `male` and `female` instead of numeric values. similarly, the values in `apoe4` were mutated in order to be easier to understand their meaning. originally, all of the values were either `0` or `1`. the values were mutated with the conditions `1 ~ carrier` and `0 ~ non-carrier` so that the values in the final dataset appear as `carrier` and `non-carrier` instead of numeric values. all of the values in `age_at_onset` had to be mutated from character values to numeric using `mutate` and `as.numeric`. finally, all patients with any missing values were removed completely by using `drop_na`. 483 patients were recruited, but only 97 patients developed MCI. because the values of `age_at_onset` were converted to numeric values, the average baseline age was able to be calculated: `r mean(baseline_data$age_at_onset)`. The ratio of women who are carriers of the apoe4 mutation is `r nrow((baseline_data[baseline_data$sex=="female",])[(baseline_data[baseline_data$sex=="female",])$apoe4=="carrier",])` out of `r nrow((baseline_data[baseline_data$sex=="female",]))`.
+
+`amyloid_data` is a data set with `r nrow(amyloid_data)` patients and `r ncol(amyloid_data)` variables. the variables provide the patient ID and baseline (time in years elapsed since the study baseline to the visit where biomarker amyloid 42/40 ratio was measured), and then records the ratio at 4 different time markers denoted by `time_2`, `time_4`, `time_6`, and `time_8`. the first row of the data was removed because it only contained the descriptions of the different variables. some of the variables were renamed in order to be shorter and easier to read and comprehend. for example, `time_in_years_elapsed_since_the_study_baseline_to_the_visit_where_biomarker_amyloid_42_40_ratio_was_measured` was renamed `baseline`.  the time marker variables were also renamed from `na_#` to `time_#`. all of the rows that contained any value `na` was removed. there were originally 495 patients recruited, but only the data from 340 patients exist in the final dataset. 
+
+`baseline_data` and `amyloid_data` were merged to create `merge_data` that only contains the data from patients who exist in both datasets. there are a lot of patients who exist only in `baseline_data` or only in `amyloid_data` meaning they must have had some missing value in one of the datasets. for example, patient 3 exists in `baseline_data` since they have all of their demographics and initial measurements, but does not exist in `amyloid_data` due to a missing value for `time_6`. there are 97 patients in `baseline_data` and 340 patients in `amyloid_data`. however, only 66 patients exist in `merge_data`. `merge_data` is important for data analysis because it shows the patients demographics compared to their carrier status and ratio recordings. 
